@@ -1,0 +1,18 @@
+# Additional base images can be found here http://uk.images.linuxcontainers.org
+images:
+  # Small testing image
+  - name: test
+    dist: alpine
+    rel: "3.10"
+
+  - name: ghostcms
+    dist: ubuntu
+    rel: focal
+
+  - name: linuxtools
+    dist: ubuntu
+    rel: focal
+
+  - name: wordpress
+    dist: ubuntu
+    rel: focal

@@ -1,0 +1,147 @@
+- name: Check For Packer
+  shell: which packer
+  register: result_packer
+  failed_when: result_packer.rc != 0
+  changed_when: result_packer.rc != 0
+
+- name: Check For Go
+  shell: which go
+  register: result_go
+  failed_when: result_go.rc != 0
+  changed_when: result_go.rc != 0
+  when: "'ghostcms-ubuntu' in ansible_run_tags"
+
+- name: Ensure Pigz
+  apt:
+    name: pigz
+    state: present
+
+- name: Configure LXC to use a bridge
+  become: yes
+  copy:
+    content: USE_LXC_BRIDGE="true"
+    dest: /etc/default/lxc-net
+    mode: 0774
+
+# Cannot start lxc-net service if dnsmasq is running
+- name: Ensure dnsmasq is stopped
+  become: yes
+  service:
+    name: dnsmasq
+    state: stopped
+
+- name: Start lxc-net service
+  become: yes
+  service:
+    name: lxc-net
+    state: started
+
+- name: Configure general container settings
+  become: yes
+  copy:
+    content: |
+      lxc.net.0.type = veth
+      lxc.net.0.link = lxcbr0
+      lxc.net.0.flags = up
+      lxc.net.0.hwaddr = 00:16:3e:xx:xx:xx
+      lxc.apparmor.profile = unconfined
+      security.nesting = true
+      lxc.cgroup.devices.allow = c 10:200 rwm
+    dest: /etc/lxc/default.conf
+    mode: 0774
+
+- name: Ensure Output Dir
+  file:
+    path: "{{ image_output }}"
+    state: directory
+
+- name: lxc-dev package
+  apt:
+    name: lxc-pve-dev
+
+- name: Ensure Python3 LXC
+  pip:
+    name: git+git://github.com/lxc/python3-lxc@master#egg=python3-lxc
+
+- name: Load Image Definitions
+  include_vars:
+    file: images.yml
+
+- name: UUID
+  set_fact:
+    uuid: "{{ ansible_date_time.iso8601_micro | to_uuid }}"
+
+- name: "Create /tmp/packer/{{ uuid }}/"
+  file:
+    state: directory
+    path: "/tmp/packer/{{ uuid }}"
+
+- name: Compile Ghost CMS Config Tool
+  shell:
+    chdir: "{{ role_path }}/files/"
+    cmd: >
+      CGO_ENABLED=0
+      go build -a -tags netgo -ld '-w -extldflags "-static"'
+      -o /tmp/packer/"{{ uuid }}"/gcms-conf
+      ghost-cms-config-tool.go
+  when: "'ghostcms-ubuntu' in ansible_run_tags"
+
+- name: Generate Images
+  become: yes
+  command:
+    chdir: "/tmp/packer/{{ uuid }}"
+    cmd: >
+      packer build
+        -var "name={{ item.name }}"
+        -var "dist={{ item.dist }}"
+        -var "rel={{ item.rel }}"
+        -var "path={{ role_path }}"
+        -var "uuid={{ uuid }}"
+        "{{ role_path}}"/packer.json
+  loop: "{{ images }}"
+  loop_control:
+    label: "{{ item.name }}-{{ item.dist }}-{{ item.rel }}"
+  when: item.name ~ '-' ~ item.dist in ansible_run_tags
+  ignore_errors: yes
+
+# Packer exports containers as rootfs.tar.gz with the following structure
+#   rootfs/
+#   ├── bin/
+#   │   ├── ...
+#   ├── boot/
+#   │   ├── ...
+#   ├── etc/
+#   │   ├── ...
+#   ├── ...
+# Proxmox expects structure without parent rootfs dir
+# As such we must extract rootfs and then archive + compress just its contents
+- name: Get all images
+  find:
+    pattern: "rootfs.tar.gz"
+    path: "/tmp/packer/{{ uuid }}"
+    recurse: yes
+  register: files
+
+# Output from packer will be of the form /tmp/packer/<uuid>/<name>-<dist>/rootfs.tar.gz
+# Extracts to /tmp/packer/<uuid>/<name>-<dist>/rootfs
+- name: Extract
+  shell:
+    cmd: "tar --preserve-permissions --numeric-owner -xhzf {{ item.path }} -C {{ item.path | dirname }}"
+    warn: false
+  loop: "{{ files.files }}"
+  loop_control:
+    label: "{{ item.path | dirname | basename }}"
+
+# Compresses contents of each "/tmp/packer/<uuid>/<name>-<dist>/rootfs" from previous step
+- name: Compress
+  shell:
+    cmd: "tar cf - -C {{ item.path | dirname }}/rootfs . | pigz > {{ image_output }}/netsoc-{{ item.path | dirname | basename }}.tar.gz"
+    warn: false
+  loop: "{{ files.files }}"
+  loop_control:
+    label: "{{ item.path | dirname | basename }}"
+
+- name: Remove Packer Output
+  file:
+    path: "/tmp/packer/{{ uuid }}"
+    state: absent
