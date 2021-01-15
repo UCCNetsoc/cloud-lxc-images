@@ -1,10 +1,8 @@
-- name: ssh
-  import_tasks: REQUISITE.yml
-
 - name: Install Dev Tools
   hosts: container
   become: yes
   tasks:
+    - import_tasks: REQUISITE.yml
     - name: Install Dependencies
       shell: "apt-get install -y {{ item }}"
       with_items:

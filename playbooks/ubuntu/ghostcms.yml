@@ -1,9 +1,7 @@
-- name: ssh
-  import_playbook: requisite-ubuntu.yml
-
 - name: Requirements
   hosts: container
   tasks:
+    - import_tasks: requisite-ubuntu.yml
     - name: Install Deps
       apt:
         name:

@@ -5,6 +5,10 @@ images:
     dist: alpine
     rel: "3.10"
 
+  - name: base
+    dist: ubuntu
+    rel: focal
+
   - name: ghostcms
     dist: ubuntu
     rel: focal
