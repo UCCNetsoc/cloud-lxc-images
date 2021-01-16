@@ -142,5 +142,5 @@
         name: docker
         enabled: yes
 
-    - name: Misc stuff to get it to work unprivileged
-      shell: rm -rf /var/lib/docker
+    - name: Delete certain privileged Docker files
+      shell: rm -f /var/lib/docker/volumes/backingFsBlockDev
