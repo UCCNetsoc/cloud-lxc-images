@@ -67,14 +67,14 @@
   include_vars:
     file: images.yml
 
-- name: UUID
+- name: Generate cloud_lxc_images_uuid
   set_fact:
-    uuid: "{{ ansible_date_time.iso8601_micro | to_uuid }}"
+    cloud_lxc_images_uuid: "{{ ansible_date_time.iso8601_micro | to_uuid }}"
 
-- name: "Create /tmp/packer/{{ uuid }}/"
+- name: "Create /tmp/packer/{{ cloud_lxc_images_uuid }}/"
   file:
     state: directory
-    path: "/tmp/packer/{{ uuid }}"
+    path: "/tmp/packer/{{ cloud_lxc_images_uuid }}"
 
 - name: Compile Ghost CMS Config Tool
   shell:
@@ -82,21 +82,21 @@
     cmd: >
       CGO_ENABLED=0
       go build -a -tags netgo -ld '-w -extldflags "-static"'
-      -o /tmp/packer/"{{ uuid }}"/gcms-conf
+      -o /tmp/packer/"{{ cloud_lxc_images_uuid }}"/gcms-conf
       ghost-cms-config-tool.go
   when: "'ghostcms-ubuntu' in ansible_run_tags"
 
 - name: Generate Images
   become: yes
   command:
-    chdir: "/tmp/packer/{{ uuid }}"
+    chdir: "/tmp/packer/{{ cloud_lxc_images_uuid }}"
     cmd: >
       packer build
         -var "name={{ item.name }}"
         -var "dist={{ item.dist }}"
         -var "rel={{ item.rel }}"
         -var "path={{ role_path }}"
-        -var "uuid={{ uuid }}"
+        -var "uuid={{ cloud_lxc_images_uuid }}"
         "{{ role_path}}"/packer.json
   loop: "{{ images }}"
   loop_control:
@@ -118,12 +118,12 @@
 - name: Get all images
   find:
     pattern: "rootfs.tar.gz"
-    path: "/tmp/packer/{{ uuid }}"
+    path: "/tmp/packer/{{ cloud_lxc_images_uuid }}"
     recurse: yes
   register: files
 
-# Output from packer will be of the form /tmp/packer/<uuid>/<name>-<dist>/rootfs.tar.gz
-# Extracts to /tmp/packer/<uuid>/<name>-<dist>/rootfs
+# Output from packer will be of the form /tmp/packer/<cloud_lxc_images_uuid>/<name>-<dist>/rootfs.tar.gz
+# Extracts to /tmp/packer/<cloud_lxc_images_uuid>/<name>-<dist>/rootfs
 - name: Extract
   shell:
     cmd: "tar --preserve-permissions --numeric-owner -xhzf {{ item.path }} -C {{ item.path | dirname }}"
@@ -132,7 +132,7 @@
   loop_control:
     label: "{{ item.path | dirname | basename }}"
 
-# Compresses contents of each "/tmp/packer/<uuid>/<name>-<dist>/rootfs" from previous step
+# Compresses contents of each "/tmp/packer/<cloud_lxc_images_uuid>/<name>-<dist>/rootfs" from previous step
 - name: Compress
   shell:
     cmd: "tar cf - -C {{ item.path | dirname }}/rootfs . | pigz > {{ image_output }}/netsoc-{{ item.path | dirname | basename }}.tar.gz"
@@ -143,5 +143,5 @@
 
 - name: Remove Packer Output
   file:
-    path: "/tmp/packer/{{ uuid }}"
+    path: "/tmp/packer/{{ cloud_lxc_images_uuid }}"
     state: absent
