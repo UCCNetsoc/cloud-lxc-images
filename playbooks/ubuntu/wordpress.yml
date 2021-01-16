@@ -1,10 +1,8 @@
-- name: ssh
-  import_tasks: REQUISITE.yml
-
 - name: Install WordPress
   hosts: container
   become: yes
   tasks:
+    - import_tasks: requisite-ubuntu.yml
     - name: Install packages
       package:
         name:

@@ -1,0 +1,4 @@
+- name: base
+  hosts: container
+  tasks:
+    - import_tasks: REQUISITE.yml
