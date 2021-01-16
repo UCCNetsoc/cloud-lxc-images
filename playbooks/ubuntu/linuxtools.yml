@@ -30,6 +30,10 @@
         - tmux
         - vim
         - python3-pip
+ 
+    - name: Install Jupyter
+      pip:
+        name: jupyter
 
     - name: Install composer
       shell: |
