@@ -2,7 +2,7 @@
   hosts: container
   become: yes
   tasks:
-    - import_tasks: requisite-ubuntu.yml
+    - import_tasks: REQUISITE.yml
     - name: Install packages
       package:
         name:
@@ -13,7 +13,7 @@
           - php7.4-mysql
         state: latest
 
-    - name: Secure MySQL installation (does the same as mysql_secure_installation)
+    - name: Secure MySQL installation (does the same as mysql_secure_installation) and set root password to 'password' (changed later)
       shell: |
         mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';" &&
         mysql -ppassword -e "DELETE FROM mysql.user WHERE User='';" &&
@@ -130,7 +130,7 @@
 
     - name: Setup Nginx config
       copy:
-        dest: /etc/nginx/sites-enabled/default
+        dest: /etc/nginx/sites-available/default
         content: |
           server {
             listen 80 default_server;
@@ -143,10 +143,21 @@
 
             server_name _;
 
+            location = /favicon.ico {
+              log_not_found off;
+              access_log off;
+            }
+
+            location = /robots.txt {
+              allow all;
+              log_not_found off;
+              access_log off;
+            }
+
             location / {
               # First attempt to serve request as file, then
               # as directory, then fall back to displaying a 404.
-              try_files $uri $uri/ /index.php?$args =404;
+              try_files $uri $uri/ /index.php?$args;
             }
 
             # Add trailing slash to */wp-admin requests.
@@ -154,10 +165,12 @@
 
             # pass PHP scripts to FastCGI server
             location ~ \.php$ {
-              include snippets/fastcgi-php.conf;
+              include fastcgi_params;
+              fastcgi_intercept_errors on;
 
               # With php-fpm (or other unix sockets):
               fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+              fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
             }
 
             location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
@@ -193,6 +206,12 @@
         find /var/www/html/ -type f -exec chmod 644 {} \;
       args:
         warn: false
+
+    - name: Install WP-CLI
+      become: yes
+      shell: |
+        wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/local/bin/wp  
+        chmod +x /usr/local/bin/wp
 
     - name: Install configurator script (we modify index.php of WordPress to automatically setup wp-config.php if it doesn't exist)
       copy:

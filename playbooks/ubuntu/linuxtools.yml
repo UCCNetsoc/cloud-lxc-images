@@ -13,7 +13,7 @@
         - gcc
         - gdb
         - git
-        - gnupg
+        - gnupg 
         - gradle
         - jq
         - make
