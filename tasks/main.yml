@@ -22,6 +22,7 @@
     content: USE_LXC_BRIDGE="true"
     dest: /etc/default/lxc-net
     mode: 0774
+  when: dev_env is defined and dev_env
 
 # Cannot start lxc-net service if dnsmasq is running
 - name: Ensure dnsmasq is stopped
@@ -29,19 +30,26 @@
   service:
     name: dnsmasq
     state: stopped
+  when: dev_env is defined and dev_env
 
 - name: Start lxc-net service
   become: yes
   service:
     name: lxc-net
     state: started
+  when: dev_env is defined and dev_env
 
 - name: Configure general container settings
   become: yes
   copy:
     content: |
+      {% if dev_env is defined and dev_env %}
       lxc.net.0.type = veth
       lxc.net.0.link = lxcbr0
+      {% else %}
+      lxc.net.0.type = macvlan
+      lxc.net.0.link = vmbr0.255
+      {% endif %}
       lxc.net.0.flags = up
       lxc.net.0.hwaddr = 00:16:3e:xx:xx:xx
       lxc.apparmor.profile = unconfined

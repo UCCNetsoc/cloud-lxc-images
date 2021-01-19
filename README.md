@@ -9,11 +9,17 @@ Images are defined in [images.yml](./images.yml). Each image requires the keys `
 
 Provisioning playbooks are stored in [playbooks](./playbooks). The playbook to use is read from the path `playbooks/<dist>/<name>.yml`.
 
+Container networking is handled one of two ways:
+1. If the `dev_env` variable is set to true then `lxc-net` will be used which handles creating a bridge interface and uses dnsmasq to assign IP addresses to containers.
+2. If the `dev_env` variable isn't defined or is set to false then a macvlan will be used linked to vmbr0.255. The vmbr0.255 interface must exist and DHCP must be available to assign IP addresses to containers.
+
 ### How To Use
 In [NaC](https://github.com/UCCNetsoc/NaC) submodule this role. \
 The build host should be a Proxmox node (running Python 3) as it is already set up to run LXC containers.
 
 Packer must be installed. This role **does not** install Packer
+
+Set the `dev_env` variable if running in the dev-env
 
 Example play:
 ```yml
