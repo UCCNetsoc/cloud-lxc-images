@@ -88,8 +88,8 @@
   shell:
     chdir: "{{ role_path }}/files/"
     cmd: >
-      CGO_ENABLED=0
-      go build -a -tags netgo -ld '-w -extldflags "-static"'
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+      go build -a -tags netgo -ldflags='-extldflags=-static"'
       -o /tmp/packer/"{{ cloud_lxc_images_uuid }}"/gcms-conf
       ghost-cms-config-tool.go
   when: "'ghostcms-ubuntu' in ansible_run_tags"

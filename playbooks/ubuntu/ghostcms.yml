@@ -1,57 +1,88 @@
 - name: Requirements
   hosts: container
   tasks:
-    - import_tasks: requisite-ubuntu.yml
-    - name: Install Deps
-      apt:
-        name:
-          - nodejs
-          - nginx
-        state: present
-    - name: Remove nginx default page
+    - import_tasks: REQUISITE.yml
+    - name: Ensure /etc/docker
       file:
-        path: /etc/nginx/sites-enabled/default
-        state: absent
-    - name: Disable nginx
-      service:
-        name: nginx
-        enabled: no
-    # I couldn't get npm to install any other way /shrug
-    - name: Install npm
-      raw: apt-get install -y npm
-      args:
-        executable: /bin/bash
-    - name: Create ghost_manager group
-      group:
-        name: ghost_manager
-        system: yes
-    - name: Create ghost_manager user
-      user:
-        name: ghost_manager
-        home: /ghost
-        group: ghost_manager
-        shell: /bin/bash
-        password: "!"
-    - name: Make ghost_manager a sudoer
+        path: /etc/docker
+        state: directory
+
+    - name: Ensure /etc/docker/daemon.json
       copy:
-        dest: /etc/sudoers.d/ghost_manager
-        content: ghost_manager  ALL=(ALL) NOPASSWD:ALL
-    - name: Global NPM
-      npm:
-        global: yes
-        production: yes
-        name: "{{ item }}"
-      loop:
-        - npm
-        - ghost-cli
-    - name: Permissions Helper
-      copy:
-        dest: /fix-permissions.sh
-        mode: 0770
+        dest: /etc/docker/daemon.json
         content: |
-          #!/bin/bash
-          find /ghost/ ! -path "./versions/*" -type f -exec chmod 00664 {} \;
-          find /ghost/ -type d -exec chmod 00775 {} \;
+          {
+                  "storage-driver": "fuse-overlayfs"
+          }
+
+    - name: Ensure Docker dependencies
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - fuse-overlayfs
+          - libfuse3-dev
+          - gpg-agent
+        state: latest
+        install_recommends: no
+
+    - name: Ensure Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+
+    - name: Ensure Docker APT repo
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+
+    - name: Ensure Docker
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: yes
+
+    - name: Ensure Docker Compose dependencies
+      apt:
+        name: python3-pip
+        state: latest
+
+    - name: Ensure Docker Compose
+      pip:
+        name: docker-compose
+        state: latest
+
+    - name: Ensure Docker Py
+      pip:
+        name: docker
+        state: latest
+
+    - name: Create override folder for containerd
+      file:
+        path: /etc/systemd/system/containerd.service.d
+        state: directory
+
+    - name: Stop LXC issues (stop loading kernel modules, this container will be unprivileged)
+      copy:
+        content: |
+          [Service]
+          ExecStartPre=
+        dest:  /etc/systemd/system/containerd.service.d/override.conf
+
+    - name: Reload Docker daemon
+      systemd:
+        state: reloaded
+        daemon_reload: yes
+        name: docker
+
+    - name: Enable Docker daemon
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Delete certain privileged Docker files
+      shell: rm -f /var/lib/docker/volumes/backingFsBlockDev
+
     - name: Copy config tool
       copy:
         src: "/tmp/packer/{{ uuid }}/gcms-conf"
@@ -66,7 +97,7 @@
 
           [Service]
           Type=simple
-          ExecStart=/srv/ghost-cms-config-tool
+          ExecStart=/srv/gcms-conf
 
           [Install]
           WantedBy=multi-user.target
@@ -74,100 +105,3 @@
       service:
         name: config_tool
         enabled: true
-
-- name: Install Ghost
-  hosts: container
-  become: yes
-  become_user: ghost_manager
-  become_method: su
-  tasks:
-    - name: NPM install Ghost
-      npm:
-        name: ghost
-        production: yes
-        path: /ghost
-    - name: Get package.json contents
-      shell: cat /ghost/node_modules/ghost/package.json
-      register: package
-    - name: Get Ghost Version
-      set_fact:
-        ghost_version: "{{ (package.stdout | from_json).get('version') }}"
-    - name: Configure file structure
-      shell:
-        chdir: /ghost
-        executable: /bin/bash
-        cmd: |
-          mv /ghost/node_modules/ghost/content /ghost/content
-          mkdir -p /ghost/versions/{{ ghost_version }}
-          mkdir /ghost/.ghost
-          ln -sf /ghost/versions/{{ ghost_version }} current
-          mv /ghost/node_modules/ghost/* current/
-          mv package-lock.json current/
-          mv node_modules current/
-    - name: Ghost Config
-      copy:
-        dest: /ghost/config.production.json
-        content: |
-          {
-            "url": "https://PLACEHOLDER",
-            "server": {
-              "port": 6969,
-              "host": "0.0.0.0"
-            },
-            "database": {
-              "client": "sqlite3",
-              "connection": {
-                "filename": "/ghost/content/data/ghost.db",
-                "database": "ghost"
-              }
-            },
-            "mail": {
-              "transport": "Direct"
-            },
-            "logging": {
-              "path": "/ghost/content/logs",
-                "level": "info",
-                "rotation": {
-                "enabled": true,
-                "count": 15,
-                "period": "1d"
-              },
-              "transports": ["stdout", "file"]
-            },
-            "process": "systemd",
-            "paths": {
-              "contentPath": "/ghost/content"
-            }
-          }
-    - name: Instances Config
-      copy:
-        dest: /ghost/.ghost/config
-        content: |
-          {
-            "instances": {
-              "ghost": {
-                "cwd": "/ghost"
-              }
-            }
-          }
-    - name: Ghost CLI Config
-      copy:
-        dest: /ghost/.ghost-cli
-        content: |
-          {
-            "active-version": "{{ ghost_version }}",
-            "cli-version": "1",
-            "name": "ghost",
-            "running": "production"
-          }
-    - name: Finish Setup with Ghost-CLI
-      shell:
-        chdir: /ghost
-        cmd: ghost setup linux-user systemd migrate
-
-- name: Requirements
-  hosts: container
-  tasks:
-    - name: Fix Permissions
-      shell:
-          cmd: /fix-permissions.sh

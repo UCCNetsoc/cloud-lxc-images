@@ -15,8 +15,10 @@ import (
 
 const port = 80
 
-const form = "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><link rel='icon' type='image/png' href='https://raw.githubusercontent.com/UCCNetsoc/cloud/master/ui/public/favicon.ico'><title>Configuration</title></head><style>body{padding:0;margin:0;background-color:#212121;font-size:14px;font-weight:400;font-family:'Roboto',sans-serif !important;color:white}#header{background-color:#2196F3;text-align:center}#header img{height:48px;margin:0 auto;padding:16px}#content{text-align:center;max-width:700px;margin:0 auto}#content-body{padding-top:16px;border-top:1px solid #333;color:gray;border-bottom:1px solid #333}h1{font-size:24px;text-transform:lowercase;font-weight:200;padding:8px 0}label{position:relative;opacity:0.5;margin:0px auto;font-size:1.2em;padding:8px}input{margin:8px auto;height:16px;background-color:#00000040;border:none;padding:8px;color:white;width:calc(100% - 16px);font-size:16px}form{max-width:500px;width:100%;margin:0 auto;text-align:left}a{color:#fff}#submit{background-color:#2196F3;font-weight:500;margin-top:20px;max-width:400px;padding:20px 0;text-transform:uppercase;font-family:'Roboto',sans-serif !important;border-radius:5px;line-height:0;letter-spacing:0.09em}</style><body><div id='header'> <img src='https://raw.githubusercontent.com/UCCNetsoc/wiki/master/assets/logo-horizontal.svg'></div><div id='content'><div><h1>Ghost CMS Configuration</h1></div><div id='content-body'><form id='form' action='/config'> <label for='host'>host</label> <input type='text' id='host' name='host'></form><div id='info'><p>Ensure that the entered host is correctly configured as a vHost</p><p>Contact Netsoc SysAdmins on our <a href='discord.netsoc.co'>Discord</a> or by <a href='mailto:netsoc@uccsocieties.ie'>Email</a> if you are unsure or require assistance!</p></div></div> <input type='submit' value='Set host' id='submit' form='form'></div></div><script>document.getElementById('host').placeholder=window.location.host;document.getElementById('host').value = window.location.host;</script></body></html>"
-const response = "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><link rel='icon' type='image/png' href='https://raw.githubusercontent.com/UCCNetsoc/cloud/master/ui/public/favicon.ico'><title>Configuration</title></head><style>body{padding:0;margin:0;background-color:#212121;font-size:14px;font-weight:400;font-family:'Roboto',sans-serif !important;color:white}#header{background-color:#2196F3;text-align:center}#header img{height:48px;margin:0 auto;padding:16px}#content{text-align:center;max-width:700px;margin:0 auto}#content-body{padding-top:16px;border-top:1px solid #333;border-bottom:1px solid #333;color:gray}h1{font-size:24px;text-transform:lowercase;font-weight:200;padding:8px 0}a{color:#fff}</style><body><div id='header'> <img src='https://raw.githubusercontent.com/UCCNetsoc/wiki/master/assets/logo-horizontal.svg'></div><div id='content'><div><h1>Ghost CMS Configuration</h1></div><div id='content-body'> {{if .Success}}<h2>Configured Ghost CMS to use {{.Host}}</h2><p>Find the admin page here <a href='https://{{.Host}}/ghost' target='_blank'>{{.Host}}</a></p><p>It may take a minute to start. If you have any issues don't hesitate to contact a Netsoc SysAdmin :D</p> {{else}}<h2>Internal Server Error</h2><p>Unable to complete the request</p><p>Manual configuration can be completed by following this guide (TODO). Contact a SysAdmin if assistance is required :D</p> {{end}}<p>Contact Netsoc SysAdmins on our <a href='discord.netsoc.co'>Discord</a> or by <a href='mailto:sysadmins@netsoc.co'>Email</a></p></div></div></body></html>"
+const form = "<!doctype html><html lang=en><meta charset=UTF-8><meta name=viewport content='width=device-width,initial-scale=1'><link rel=icon type=image/png href=https://raw.githubusercontent.com/UCCNetsoc/cloud/master/ui/public/favicon.ico><title>Configuration</title><style>body{padding:0;margin:0;background-color:#212121;font-size:14px;font-weight:400;font-family:Roboto,sans-serif!important;color:#fff}#header{background-color:#2196f3;text-align:center}#header img{height:48px;margin:0 auto;padding:16px}#content{text-align:center;max-width:700px;margin:0 auto}#content-body{padding-top:16px;border-top:1px solid #333;color:gray;border-bottom:1px solid #333}h1{font-size:24px;text-transform:lowercase;font-weight:200;padding:8px 0}label{position:relative;opacity:.5;margin:0 auto;font-size:1.2em;padding:8px}input{margin:8px auto;height:16px;background-color:#00000040;border:none;padding:8px;color:#fff;width:calc(100% - 16px);font-size:16px}form{max-width:500px;width:100%;margin:0 auto;text-align:left}a{color:#fff}#submit{background-color:#2196f3;font-weight:500;margin-top:20px;max-width:400px;padding:20px 0;text-transform:uppercase;font-family:Roboto,sans-serif!important;border-radius:5px;line-height:0;letter-spacing:.09em}</style><div id=header><img src=https://raw.githubusercontent.com/UCCNetsoc/wiki/master/assets/logo-horizontal.svg></div><div id=content><div><h1>Ghost CMS Configuration</h1></div><div id=content-body><form id=form action=/config><label for=host>host</label> <input id=host name=host></form><div id=info><p>Ensure that the entered host is correctly configured as a vHost<p>Contact Netsoc SysAdmins on our <a href=discord.netsoc.co>Discord</a> or by <a href=mailto:netsoc@uccsocieties.ie>Email</a> if you are unsure or require assistance!</div></div><input type=submit value='Set host' id=submit form=form></div><script>document.getElementById('host').placeholder=window.location.host,document.getElementById('host').value=window.location.host</script>"
+const response = "<!doctype html><html lang=en><meta charset=UTF-8><meta name=viewport content='width=device-width,initial-scale=1'><link rel=icon type=image/png href=https://raw.githubusercontent.com/UCCNetsoc/cloud/master/ui/public/favicon.ico><title>Configuration</title><style>body{padding:0;margin:0;background-color:#212121;font-size:14px;font-weight:400;font-family:Roboto,sans-serif!important;color:#fff}#header{background-color:#2196f3;text-align:center}#header img{height:48px;margin:0 auto;padding:16px}#content{text-align:center;max-width:700px;margin:0 auto}#content-body{padding-top:16px;border-top:1px solid #333;border-bottom:1px solid #333;color:gray}h1{font-size:24px;text-transform:lowercase;font-weight:200;padding:8px 0}a{color:#fff}</style><div id=header><img src=https://raw.githubusercontent.com/UCCNetsoc/wiki/master/assets/logo-horizontal.svg></div><div id=content><div><h1>Ghost CMS Configuration</h1></div><div id=content-body><h2>Configured Ghost CMS to use {{.Host}}</h2><p>Find the admin page here <a href=https://{{.Host}}/ghost target=_blank>{{.Host}}</a><p><em>It may take a minute to start</em>. If you have any issues don't hesitate to contact a Netsoc SysAdmin :D<p>Contact Netsoc SysAdmins on our <a href=discord.netsoc.co>Discord</a> or by <a href=mailto:sysadmins@netsoc.co>Email</a></div></div>"
+
+var host string
 
 func main() {
 	httpServerExitDone := &sync.WaitGroup{}
@@ -38,14 +40,9 @@ func main() {
 
 	// Commands to execute after web server shutdown
 	exec.Command("systemctl", "disable", "config_tool.service").Run()
-
-	exec.Command("systemctl", "enable", "nginx.service").Run()
-	exec.Command("systemctl", "start", "nginx.service").Run()
-
-	exec.Command("systemctl", "enable", "ghost_ghost.service").Run()
-	exec.Command("systemctl", "start", "ghost_ghost.service").Run()
-
-
+	exec.Command("docker", "run", "-d", "--name", "ghost", "-v",
+		"ghost:/var/lib/ghost/content", "-e", fmt.Sprintf("url=https://%s", host),
+		"-p", "80:2368", "ghost").Run()
 }
 
 func startHTTPServer(wg *sync.WaitGroup) *http.Server {
@@ -72,21 +69,13 @@ func showForm(w http.ResponseWriter, r *http.Request) {
 func configure(done chan bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
-		host := r.FormValue("host")
+		host = r.FormValue("host")
 		re := regexp.MustCompile(`https?:\/\/`)
 		host = re.ReplaceAllString(host, "")
 		host = strings.TrimSuffix(host, "/")
-		// Update ghost config with new host
-		err := exec.Command("sed", "-i", fmt.Sprintf("s/https:\\/\\/PLACEHOLDER/https:\\/\\/%s/", host), "/ghost/config.production.json").Run()
-
-		// Configure nginx
-		nginx := exec.Command("su", "ghost_manager", "-c", "/usr/local/bin/ghost setup nginx")
-		nginx.Dir = "/ghost"
-		nginx.Run()
-		exec.Command("sed", "-i", "s/\\$scheme/https/", fmt.Sprintf("/etc/nginx/sites-enabled/%s.conf", host)).Run()
 
 		t, _ := template.New("response").Parse(response)
-		t.Execute(w, map[string]interface{}{"Host": host, "Success": err == nil})
+		t.Execute(w, map[string]interface{}{"Host": host})
 		done <- true
 	}
 }
